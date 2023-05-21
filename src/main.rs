@@ -30,7 +30,6 @@ macro_rules! token_kind {
     };
 }
 
-// Q: is nil a keyword?
 #[rustfmt::skip]
 token_kind!(
     Read, "read",
@@ -38,6 +37,7 @@ token_kind!(
     While, "while",
     Do, "do",
     Od, "od",
+    Nil, "nil",
     Percent, "%",
     Assign, ":=",
     LParen, "(",
@@ -197,7 +197,7 @@ write Y
 
     assert_eq!(Some(Ident("Y".to_string())), t.next_token());
     assert_eq!(Some(Assign), t.next_token());
-    assert_eq!(Some(Ident("nil".to_string())), t.next_token());
+    assert_eq!(Some(Nil), t.next_token());
     assert_eq!(Some(Semicolon), t.next_token());
 
     assert_eq!(Some(Od), t.next_token());
