@@ -32,12 +32,18 @@ macro_rules! token_kind {
 
 #[rustfmt::skip]
 token_kind!(
+    // keywords
     Read, "read",
     Write, "write",
     While, "while",
     Do, "do",
     Od, "od",
     Nil, "nil",
+    Cons, "cons",
+    Hd, "hd",
+    Tl, "tl",
+
+    // symbols
     Percent, "%",
     Assign, ":=",
     LParen, "(",
@@ -180,7 +186,8 @@ fn next_token_test_6() {
 r#"read X
 %
     while X do
-        Y := nil ;
+        Y := (cons (hd X) Y) ;
+        X := (tl X) ;
     od
 %
 write Y
@@ -197,8 +204,22 @@ write Y
 
     assert_eq!(Some(Ident("Y".to_string())), t.next_token());
     assert_eq!(Some(Assign), t.next_token());
-    assert_eq!(Some(Nil), t.next_token());
+    assert_eq!(Some(LParen), t.next_token());
+    assert_eq!(Some(Cons), t.next_token());
+    assert_eq!(Some(LParen), t.next_token());
+    assert_eq!(Some(Hd), t.next_token());
+    assert_eq!(Some(Ident("X".to_string())), t.next_token());
+    assert_eq!(Some(RParen), t.next_token());
+    assert_eq!(Some(Ident("Y".to_string())), t.next_token());
+    assert_eq!(Some(RParen), t.next_token());
     assert_eq!(Some(Semicolon), t.next_token());
+
+    assert_eq!(Some(Ident("X".to_string())), t.next_token());
+    assert_eq!(Some(Assign), t.next_token());
+    assert_eq!(Some(LParen), t.next_token());
+    assert_eq!(Some(Tl), t.next_token());
+    assert_eq!(Some(Ident("X".to_string())), t.next_token());
+    assert_eq!(Some(RParen), t.next_token());
 
     assert_eq!(Some(Od), t.next_token());
 
