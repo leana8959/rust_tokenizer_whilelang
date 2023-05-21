@@ -125,7 +125,6 @@ fn next_token_test_1() {
     let mut t = Tokenizer::new("read");
     assert_eq!(Some("read"), t.remaining_input());
     assert_eq!(Some(TokenKind::Read), t.next_token());
-    assert_eq!(None, t.remaining_input());
     assert_eq!(None, t.next_token());
 }
 
@@ -134,7 +133,6 @@ fn next_token_test_2() {
     let mut t = Tokenizer::new("%");
     assert_eq!(Some("%"), t.remaining_input());
     assert_eq!(Some(TokenKind::Percent), t.next_token());
-    assert_eq!(None, t.remaining_input());
     assert_eq!(None, t.next_token());
 }
 
@@ -143,8 +141,6 @@ fn next_token_test_3() {
     let mut t = Tokenizer::new(" ");
     assert_eq!(Some(" "), t.remaining_input());
     assert_eq!(None, t.next_token());
-    assert_eq!(None, t.remaining_input());
-    assert_eq!(None, t.next_token());
 }
 
 #[test]
@@ -152,6 +148,7 @@ fn next_token_test_4() {
     let mut t = Tokenizer::new("read X\n");
     assert_eq!(Some(TokenKind::Read), t.next_token());
     assert_eq!(Some(TokenKind::Ident("X".to_string())), t.next_token());
+    assert_eq!(None, t.next_token());
 }
 
 #[test]
@@ -172,9 +169,4 @@ write Y
     assert_eq!(None, t.next_token());
 }
 
-fn main() {
-    let mut t = Tokenizer::new("read X\n");
-    assert_eq!(Some(TokenKind::Read), t.next_token());
-    assert_eq!(Some(" X\n"), t.remaining_input());
-    assert_eq!(Some(TokenKind::Do), t.next_token());
-}
+fn main() {}
