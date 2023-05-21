@@ -30,6 +30,7 @@ macro_rules! token_kind {
     };
 }
 
+// Q: is nil a keyword?
 #[rustfmt::skip]
 token_kind!(
     Read, "read",
@@ -87,16 +88,16 @@ impl Tokenizer {
             .map(|p| p + self.position)
             .unwrap_or(self.input.len());
 
+        // TODO: simplification
         if self.position < end_position {
             let s = &self.input[self.position..end_position];
-            self.position = end_position;
             Some(s)
         } else {
             None
         }
     }
 
-    fn next_token(&mut self) -> Option<TokenKind> {
+    pub fn next_token(&mut self) -> Option<TokenKind> {
         self.skip_whitespace();
 
         let token = self
@@ -153,8 +154,9 @@ fn next_token_test_4() {
 
 #[test]
 fn next_token_test_5() {
+    #[rustfmt::skip]
     let mut t = Tokenizer::new(
-        r#"read X
+r#"read X
 %
 %
 write Y
@@ -166,6 +168,43 @@ write Y
     assert_eq!(Some(TokenKind::Percent), t.next_token());
     assert_eq!(Some(TokenKind::Write), t.next_token());
     assert_eq!(Some(TokenKind::Ident("Y".to_string())), t.next_token());
+    assert_eq!(None, t.next_token());
+}
+
+#[test]
+fn next_token_test_6() {
+    use TokenKind::*;
+
+    #[rustfmt::skip]
+    let mut t = Tokenizer::new(
+r#"read X
+%
+    while X do
+        Y := nil ;
+    od
+%
+write Y
+"#,
+    );
+
+    assert_eq!(Some(Read), t.next_token());
+    assert_eq!(Some(Ident("X".to_string())), t.next_token());
+    assert_eq!(Some(Percent), t.next_token());
+
+    assert_eq!(Some(While), t.next_token());
+    assert_eq!(Some(Ident("X".to_string())), t.next_token());
+    assert_eq!(Some(Do), t.next_token());
+
+    assert_eq!(Some(Ident("Y".to_string())), t.next_token());
+    assert_eq!(Some(Assign), t.next_token());
+    assert_eq!(Some(Ident("nil".to_string())), t.next_token());
+    assert_eq!(Some(Semicolon), t.next_token());
+
+    assert_eq!(Some(Od), t.next_token());
+
+    assert_eq!(Some(Percent), t.next_token());
+    assert_eq!(Some(Write), t.next_token());
+    assert_eq!(Some(Ident("Y".to_string())), t.next_token());
     assert_eq!(None, t.next_token());
 }
 
