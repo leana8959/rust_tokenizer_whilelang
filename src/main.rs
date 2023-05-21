@@ -81,11 +81,10 @@ impl Tokenizer {
     }
 
     fn next_ident(&mut self) -> Option<&str> {
-        self.skip_whitespace();
-
         let end_position = self
             .remaining_input()?
             .find(|c: char| c.is_ascii_whitespace())
+            .map(|p| p + self.position)
             .unwrap_or(self.input.len());
 
         if self.position < end_position {
@@ -98,6 +97,8 @@ impl Tokenizer {
     }
 
     fn next_token(&mut self) -> Option<TokenKind> {
+        self.skip_whitespace();
+
         let token = self
             .remaining_input()?
             .starts_with_token()
@@ -148,9 +149,32 @@ fn next_token_test_3() {
 
 #[test]
 fn next_token_test_4() {
-    let mut t = Tokenizer::new("read X");
+    let mut t = Tokenizer::new("read X\n");
     assert_eq!(Some(TokenKind::Read), t.next_token());
     assert_eq!(Some(TokenKind::Ident("X".to_string())), t.next_token());
 }
 
-fn main() {}
+#[test]
+fn next_token_test_5() {
+    let mut t = Tokenizer::new(
+        r#"read X
+%
+%
+write Y
+"#,
+    );
+    assert_eq!(Some(TokenKind::Read), t.next_token());
+    assert_eq!(Some(TokenKind::Ident("X".to_string())), t.next_token());
+    assert_eq!(Some(TokenKind::Percent), t.next_token());
+    assert_eq!(Some(TokenKind::Percent), t.next_token());
+    assert_eq!(Some(TokenKind::Write), t.next_token());
+    assert_eq!(Some(TokenKind::Ident("Y".to_string())), t.next_token());
+    assert_eq!(None, t.next_token());
+}
+
+fn main() {
+    let mut t = Tokenizer::new("read X\n");
+    assert_eq!(Some(TokenKind::Read), t.next_token());
+    assert_eq!(Some(" X\n"), t.remaining_input());
+    assert_eq!(Some(TokenKind::Do), t.next_token());
+}
