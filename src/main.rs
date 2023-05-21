@@ -3,7 +3,10 @@ use std::fmt;
 macro_rules! token_kind {
     ( $( $kind:ident, $syntax:literal ),+ ) => {
         #[derive(Debug, PartialEq, Eq)]
-        enum TokenKind { $( $kind, )+ }
+        enum TokenKind {
+            Ident(String),
+            $( $kind, )+
+        }
 
 
         trait Token { fn starts_with_token(&self) -> Option<TokenKind>; }
@@ -20,6 +23,7 @@ macro_rules! token_kind {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 use TokenKind::*;
                 match self {
+                    Ident(s) => write!(f, "{s}"),
                     $( $kind => write!(f, $syntax), )+
                 }
             }
@@ -57,7 +61,7 @@ impl Tokenizer {
 
     fn skip_whitespace(&mut self) {
         match self.peek_char() {
-            Some(c) if c.is_whitespace() => {
+            Some(c) if c.is_ascii_whitespace() => {
                 self.position += 1;
                 self.skip_whitespace();
             }
@@ -67,13 +71,6 @@ impl Tokenizer {
 
     fn peek_char(&self) -> Option<char> {
         self.input.chars().nth(self.position)
-    }
-
-    fn next_char(&mut self) -> Option<char> {
-        let ch = self.peek_char();
-        self.position += 1;
-
-        ch
     }
 
     fn remaining_input(&self) -> Option<&str> {
@@ -86,19 +83,26 @@ impl Tokenizer {
 
     fn next_ident(&mut self) -> Option<&str> {
         self.skip_whitespace();
-        self.input
-            .find(|c: char| c.is_whitespace())
+        self.remaining_input()?
+            .find(|c: char| c.is_ascii_whitespace())
             .or(Some(self.input.len()))
-            .map(|end| {
-                let s = &self.input[self.position..end];
-                self.position += 1;
-
-                s
+            .and_then(|end| {
+                if dbg!(self.position) < dbg!(end) {
+                    let s = &self.input[self.position..end];
+                    self.position = end;
+                    Some(s)
+                } else {
+                    None
+                }
             })
     }
 
     fn next_token(&mut self) -> Option<TokenKind> {
-        match self.remaining_input()?.starts_with_token() {
+        match self
+            .remaining_input()?
+            .starts_with_token()
+            .or_else(|| self.next_ident().map(|s| TokenKind::Ident(s.to_string())))
+        {
             Some(t) => {
                 self.position += t.to_string().len();
                 Some(t)
@@ -145,6 +149,11 @@ fn next_token_test_3() {
     assert_eq!(None, t.next_token());
 }
 
-fn main() {
-    println!("Hello, world!");
+#[test]
+fn next_token_test_4() {
+    let mut t = Tokenizer::new("read X");
+    assert_eq!(Some(TokenKind::Read), t.next_token());
+    assert_eq!(Some(TokenKind::Ident("X".to_string())), t.next_token());
 }
+
+fn main() {}
