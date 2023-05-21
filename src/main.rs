@@ -8,7 +8,6 @@ macro_rules! token_kind {
             $( $kind, )+
         }
 
-
         trait Token { fn starts_with_token(&self) -> Option<TokenKind>; }
         impl Token for &str {
             fn starts_with_token(&self) -> Option<TokenKind> {
@@ -60,12 +59,12 @@ impl Tokenizer {
     }
 
     fn skip_whitespace(&mut self) {
-        match self.peek_char() {
-            Some(c) if c.is_ascii_whitespace() => {
+        while let Some(c) = self.peek_char() {
+            if c.is_ascii_whitespace() {
                 self.position += 1;
-                self.skip_whitespace();
+            } else {
+                break;
             }
-            _ => (),
         }
     }
 
@@ -83,35 +82,33 @@ impl Tokenizer {
 
     fn next_ident(&mut self) -> Option<&str> {
         self.skip_whitespace();
-        self.remaining_input()?
+
+        let end_position = self
+            .remaining_input()?
             .find(|c: char| c.is_ascii_whitespace())
-            .or(Some(self.input.len()))
-            .and_then(|end| {
-                if dbg!(self.position) < dbg!(end) {
-                    let s = &self.input[self.position..end];
-                    self.position = end;
-                    Some(s)
-                } else {
-                    None
-                }
-            })
+            .unwrap_or(self.input.len());
+
+        if self.position < end_position {
+            let s = &self.input[self.position..end_position];
+            self.position = end_position;
+            Some(s)
+        } else {
+            None
+        }
     }
 
     fn next_token(&mut self) -> Option<TokenKind> {
-        match self
+        let token = self
             .remaining_input()?
             .starts_with_token()
-            .or_else(|| self.next_ident().map(|s| TokenKind::Ident(s.to_string())))
-        {
-            Some(t) => {
-                self.position += t.to_string().len();
-                Some(t)
-            }
-            None => {
-                self.skip_whitespace();
-                None
-            }
+            .or_else(|| self.next_ident().map(|s| TokenKind::Ident(s.to_string())));
+
+        match token {
+            Some(ref t) => self.position += t.to_string().len(),
+            None => self.skip_whitespace(),
         }
+
+        token
     }
 }
 
