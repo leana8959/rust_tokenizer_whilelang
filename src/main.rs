@@ -84,6 +84,19 @@ impl Tokenizer {
         }
     }
 
+    fn next_ident(&mut self) -> Option<&str> {
+        self.skip_whitespace();
+        self.input
+            .find(|c: char| c.is_whitespace())
+            .or(Some(self.input.len()))
+            .map(|end| {
+                let s = &self.input[self.position..end];
+                self.position += 1;
+
+                s
+            })
+    }
+
     fn next_token(&mut self) -> Option<TokenKind> {
         match self.remaining_input()?.starts_with_token() {
             Some(t) => {
@@ -96,6 +109,13 @@ impl Tokenizer {
             }
         }
     }
+}
+
+#[test]
+fn next_ident_test_1() {
+    let mut t = Tokenizer::new("foo");
+    assert_eq!(Some("foo"), t.remaining_input());
+    assert_eq!(Some("foo"), t.next_ident());
 }
 
 #[test]
