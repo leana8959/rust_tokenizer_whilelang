@@ -74,7 +74,7 @@ impl Tokenizer {
     }
 
     fn remaining_input(&self) -> Option<&str> {
-        if self.position >= self.input.len() {
+        if self.position > self.input.len() {
             None
         } else {
             Some(&self.input[self.position..])
