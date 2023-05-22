@@ -5,17 +5,26 @@ macro_rules! symbol_type {
         #[derive(Debug, PartialEq, Eq)]
         enum SymbolType { $( $name, )+ }
 
-        fn break_off_token_from_str<'a>(input: &'a str) -> Option<(SymbolType, &'a str)> {
-            use SymbolType::*;
-            $(
-                if let Some(rem) = input.strip_prefix($syntax) {
-                    if rem.starts_with_whitespace() {
-                        return Some(($name, rem));
+        impl SymbolType {
+            fn strip_token<'a>(input: &'a str) -> Option<SymbolType> {
+                use SymbolType::*;
+                $(
+                    if let Some(rem) = input.strip_prefix($syntax) {
+                        if rem.starts_with_token() {
+                            return Some($name);
+                        }
                     }
-                }
-            )+
+                )+
 
-            return None;
+                return None;
+            }
+
+            fn len(&self) -> usize {
+                use SymbolType::*;
+                match self {
+                    $( $name => $syntax.len(), )+
+                }
+            }
         }
 
         // Q: remove this?
@@ -40,29 +49,65 @@ symbol_type!(
     Od, "od"
 );
 
-trait Whitespace {
-    fn starts_with_whitespace(&self) -> bool;
+trait Tokenizable {
+    fn starts_with_token(&self) -> bool;
 }
-impl Whitespace for &str {
-    fn starts_with_whitespace(&self) -> bool {
-        self.starts_with(' ') || self.starts_with('\n') || self.starts_with('\t') || self.is_empty()
+impl Tokenizable for &str {
+    fn starts_with_token(&self) -> bool {
+        self.starts_with(' ')
+            || self.starts_with('\n')
+            || self.starts_with('\t')
+            || self.is_empty()
+            || SymbolType::strip_token(self).is_some()
     }
 }
 
 enum TokenType {
-    Keyword(SymbolType),
+    Symbol(SymbolType),
     Ident(String),
 }
 
+#[derive(Default, Debug)]
+struct Tokenizer {
+    input: String,
+    position: usize,
+}
+
+impl Tokenizer {
+    fn new(input: String) -> Self {
+        Tokenizer {
+            input,
+            ..Default::default()
+        }
+    }
+}
+
+impl Iterator for Tokenizer {
+    type Item = TokenType;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match &self.input[self.position..] {
+            "" => None,
+            input => match SymbolType::strip_token(&input) {
+                Some(symbol) => {
+                    self.position += symbol.len();
+                    Some(TokenType::Symbol(symbol))
+                }
+                None => None,
+            },
+        }
+    }
+}
+
 #[test]
-fn break_off_token_from_str_test() {
+fn strip_token_test() {
     use SymbolType::*;
     let input = "%";
-    assert_eq!(Some((Percent, "")), break_off_token_from_str(input));
+    assert_eq!(Some(Percent), SymbolType::strip_token(input));
     let input = ";";
-    assert_eq!(Some((Semicolon, "")), break_off_token_from_str(input));
+    assert_eq!(Some(Semicolon), SymbolType::strip_token(input));
     let input = ":=";
-    assert_eq!(Some((Assign, "")), break_off_token_from_str(input));
+    assert_eq!(Some(Assign), SymbolType::strip_token(input));
 }
 
 fn main() {
