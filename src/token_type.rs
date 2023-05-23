@@ -64,11 +64,18 @@ symbol_type!(
     Percent, "%",
     Assign, ":=",
     Semicolon, ";",
+    LParen, "(",
+    RParen, ")",
 
     Read, "read",
     Write, "write",
+    While, "while",
     Do, "do",
-    Od, "od"
+    Od, "od",
+    Cons, "cons",
+    Hd, "hd",
+    Tl, "tl",
+    Nil, "nil"
 );
 
 pub trait Tokenizable {
@@ -79,6 +86,7 @@ impl Tokenizable for str {
     fn starts_with_whitespace(&self) -> bool {
         self.starts_with(' ') || self.starts_with('\n') || self.starts_with('\t')
     }
+
     fn starts_with_token(&self) -> bool {
         self.starts_with_whitespace() || self.is_empty() || TokenType::strip_symbol(self).is_some()
     }
