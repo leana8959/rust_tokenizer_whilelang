@@ -1,6 +1,8 @@
 mod token_type;
 
-use crate::token_type::{SymbolType, TokenType};
+use crate::token_type::SymbolType;
+use crate::token_type::TokenType;
+use crate::token_type::Tokenizable;
 
 #[derive(Default, Debug)]
 struct Tokenizer {
@@ -15,20 +17,27 @@ impl Tokenizer {
             ..Default::default()
         }
     }
+
+    fn eat_whitespace(&mut self) {
+        while self.input[self.position..].starts_with_whitespace() {
+            self.position += 1;
+        }
+    }
 }
 
 impl Iterator for Tokenizer {
     type Item = TokenType;
 
     fn next(&mut self) -> Option<Self::Item> {
+        self.eat_whitespace();
+
         use TokenType::*;
         match &self.input[self.position..] {
             "" => None,
             input => match TokenType::strip_symbol(&input)
-                .and_then(|symbol| Some(Symbol(symbol)))
+                .map(|symbol| Symbol(symbol))
                 .or_else(|| {
-                    TokenType::strip_identifier(&input)
-                        .and_then(|ident| Some(Ident(ident.to_string())))
+                    TokenType::strip_identifier(&input).map(|ident| Ident(ident.to_string()))
                 }) {
                 Some(token) => {
                     self.position += token.len();
@@ -53,7 +62,7 @@ fn next_token_test_1() {
 #[test]
 fn next_token_test_2() {
     use TokenType::*;
-    let mut t = Tokenizer::new("X");
+    let mut t = Tokenizer::new("   X");
     assert_eq!(Some(Ident("X".to_string())), t.next());
     assert_eq!(None, t.next());
 }

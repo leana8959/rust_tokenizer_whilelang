@@ -1,5 +1,3 @@
-use std::fmt;
-
 macro_rules! symbol_type {
     ( $( $name:ident, $syntax:literal ),+ ) => {
         #[derive(Debug, PartialEq, Eq)]
@@ -15,7 +13,7 @@ macro_rules! symbol_type {
         }
 
         impl TokenType {
-            pub fn strip_symbol<'a>(input: &'a str) -> Option<SymbolType> {
+            pub fn strip_symbol(input: &str) -> Option<SymbolType> {
                 use SymbolType::*;
 
                 $(
@@ -27,14 +25,6 @@ macro_rules! symbol_type {
                 )+
 
                 return None;
-            }
-        }
-
-        // Q: remove this?
-        impl fmt::Display for SymbolType {
-            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                use SymbolType::*;
-                match self { $( $name => write!(f, $syntax), )+ }
             }
         }
     };
@@ -51,7 +41,7 @@ impl TokenType {
         }
 
         let result = &input[..cursor];
-        if result == "" {
+        if result.is_empty() {
             None
         } else {
             Some(result)
@@ -79,11 +69,11 @@ symbol_type!(
     Od, "od"
 );
 
-trait Tokenizable {
+pub trait Tokenizable {
     fn starts_with_whitespace(&self) -> bool;
     fn starts_with_token(&self) -> bool;
 }
-impl Tokenizable for &str {
+impl Tokenizable for str {
     fn starts_with_whitespace(&self) -> bool {
         self.starts_with(' ') || self.starts_with('\n') || self.starts_with('\t')
     }
@@ -94,7 +84,6 @@ impl Tokenizable for &str {
 
 #[test]
 fn strip_identifier_test() {
-    use TokenType::Ident;
     assert_eq!(Some("aoeu"), TokenType::strip_identifier("aoeu"));
 }
 
