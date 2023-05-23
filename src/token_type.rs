@@ -13,13 +13,14 @@ macro_rules! symbol_type {
         }
 
         impl TokenType {
-            pub fn strip_symbol(input: &str) -> Option<SymbolType> {
+            pub fn strip_symbol(input: &str) -> Option<TokenType> {
+                use TokenType::*;
                 use SymbolType::*;
 
                 $(
                 if let Some(rem) = input.strip_prefix($syntax) {
                     if rem.starts_with_token() {
-                        return Some($name);
+                        return Some(Symbol($name));
                     }
                 }
                 )+
@@ -31,7 +32,8 @@ macro_rules! symbol_type {
 }
 
 impl TokenType {
-    pub fn strip_identifier(input: &str) -> Option<&str> {
+    pub fn strip_identifier(input: &str) -> Option<TokenType> {
+        use TokenType::*;
         let mut cursor = 0;
         let mut rem = &input[cursor..];
 
@@ -44,7 +46,7 @@ impl TokenType {
         if result.is_empty() {
             None
         } else {
-            Some(result)
+            Some(Ident(result.to_string()))
         }
     }
 
@@ -84,18 +86,24 @@ impl Tokenizable for str {
 
 #[test]
 fn strip_identifier_test() {
-    assert_eq!(Some("aoeu"), TokenType::strip_identifier("aoeu"));
+    use TokenType::*;
+    assert_eq!(
+        Some(Ident("aoeu".to_string())),
+        TokenType::strip_identifier("aoeu")
+    );
 }
 
 #[test]
 fn strip_symbol_test() {
     use SymbolType::*;
+    use TokenType::*;
+
     let input = "%";
-    assert_eq!(Some(Percent), TokenType::strip_symbol(input));
+    assert_eq!(Some(Symbol(Percent)), TokenType::strip_symbol(input));
     let input = ";";
-    assert_eq!(Some(Semicolon), TokenType::strip_symbol(input));
+    assert_eq!(Some(Symbol(Semicolon)), TokenType::strip_symbol(input));
     let input = ":=";
-    assert_eq!(Some(Assign), TokenType::strip_symbol(input));
+    assert_eq!(Some(Symbol(Assign)), TokenType::strip_symbol(input));
 }
 
 #[derive(Debug, PartialEq, Eq)]

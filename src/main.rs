@@ -31,14 +31,11 @@ impl Iterator for Tokenizer {
     fn next(&mut self) -> Option<Self::Item> {
         self.eat_whitespace();
 
-        use TokenType::*;
         match &self.input[self.position..] {
             "" => None,
             input => match TokenType::strip_symbol(&input)
-                .map(|symbol| Symbol(symbol))
-                .or_else(|| {
-                    TokenType::strip_identifier(&input).map(|ident| Ident(ident.to_string()))
-                }) {
+                .or_else(|| TokenType::strip_identifier(&input))
+            {
                 Some(token) => {
                     self.position += token.len();
                     Some(token)
