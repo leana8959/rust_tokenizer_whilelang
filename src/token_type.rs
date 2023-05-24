@@ -1,6 +1,6 @@
 use nom::{
     branch::alt,
-    bytes::{complete::take_while, streaming::tag},
+    bytes::{complete::take_while1, streaming::tag},
     combinator::map,
     IResult, Parser,
 };
@@ -57,7 +57,7 @@ impl TokenType {
         use TokenType::Ident;
         let is_valid_ident_name = |c: char| c.is_alphanumeric() || c == '_';
 
-        map(take_while(is_valid_ident_name), |cs: &str| {
+        map(take_while1(is_valid_ident_name), |cs: &str| {
             Ident(cs.to_string())
         })(input)
     }
@@ -90,6 +90,7 @@ macro_rules! nom_eq {
         assert_eq!($out_expected, out, "expected: {:?}\tout: {:?}", $out_expected, out);
     };
 }
+pub(crate) use nom_eq;
 
 #[test]
 fn parse_ident_test_1() {

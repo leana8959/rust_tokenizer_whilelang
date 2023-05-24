@@ -1,11 +1,20 @@
+use nom::{character::complete::multispace0, multi::many0, IResult};
+
+use crate::token_type::nom_eq;
 use crate::token_type::SymbolType;
 use crate::token_type::TokenType;
-use crate::token_type::Tokenizable;
+
+use SymbolType::*;
+use TokenType::*;
 
 #[derive(Default, Debug)]
 struct Tokenizer {
     input: String,
     position: usize,
+}
+
+fn parse_whitespace(input: &str) -> IResult<&str, &str> {
+    multispace0(input)
 }
 
 impl Tokenizer {
@@ -17,38 +26,58 @@ impl Tokenizer {
     }
 
     fn eat_whitespace(&mut self) {
-        while self.input[self.position..].starts_with_whitespace() {
-            self.position += 1;
+        if let Ok((_rem, out)) = parse_whitespace(&self.input[self.position..]) {
+            self.position += out.chars().count();
         }
     }
+}
+
+#[test]
+fn eat_whitespace_test_1() {
+    let mut t = Tokenizer::new(" x");
+    assert_eq!(0, t.position);
+    t.eat_whitespace();
+    assert_eq!(1, t.position);
+}
+
+#[test]
+fn eat_whitespace_test_2() {
+    let mut t = Tokenizer::new("  x");
+    assert_eq!(0, t.position);
+    t.eat_whitespace();
+    assert_eq!(2, t.position);
+}
+
+#[test]
+fn eat_whitespace_test_3() {
+    let mut t = Tokenizer::new("   aoeu");
+    assert_eq!(0, t.position);
+    t.eat_whitespace();
+    assert_eq!(3, t.position);
 }
 
 impl Iterator for Tokenizer {
     type Item = TokenType;
 
     fn next(&mut self) -> Option<Self::Item> {
+        dbg!(self.position);
         self.eat_whitespace();
+        dbg!(self.position);
 
-        match &self.input[self.position..] {
-            "" => None,
-            input => match TokenType::strip_symbol(&input)
-                .or_else(|| TokenType::strip_identifier(&input))
-            {
-                Some(token) => {
-                    self.position += token.len();
-                    Some(token)
-                }
-                None => None,
-            },
+        match TokenType::parse_token(&self.input[self.position..]) {
+            Ok((rem, token)) => {
+                dbg!(&token);
+                self.position = self.input.chars().count() - rem.chars().count();
+                Some(token)
+            }
+            Err(_) => None,
         }
     }
 }
 
 #[test]
 fn next_token_test_1() {
-    use SymbolType::*;
-    use TokenType::*;
-    let mut t = Tokenizer::new("%;");
+    let mut t = Tokenizer::new("% ;");
     assert_eq!(Some(Symbol(Percent)), t.next());
     assert_eq!(Some(Symbol(Semicolon)), t.next());
     assert_eq!(None, t.next());
@@ -56,9 +85,7 @@ fn next_token_test_1() {
 
 #[test]
 fn next_token_test_2() {
-    use SymbolType::*;
-    use TokenType::*;
-    let mut t = Tokenizer::new("read   X)");
+    let mut t = Tokenizer::new("read X)");
     assert_eq!(Some(Symbol(Read)), t.next());
     assert_eq!(Some(Ident("X".to_string())), t.next());
     assert_eq!(Some(Symbol(RParen)), t.next());
@@ -67,8 +94,6 @@ fn next_token_test_2() {
 
 #[test]
 fn next_token_test_3() {
-    use SymbolType::*;
-    use TokenType::*;
     #[rustfmt::skip]
     let mut t = Tokenizer::new(
 r#"read X
